@@ -25,7 +25,7 @@
 
 <br/>
 
-[![Arvyax Web App Preview](./assets/web_preview.png)](https://ratanjyoti.github.io/Mental-Wellness-AI/)
+[![Arvyax Web App Preview](./assets/web_previews.png)](https://ratanjyoti.github.io/Mental-Wellness-AI/)
 
 <br/>
 
