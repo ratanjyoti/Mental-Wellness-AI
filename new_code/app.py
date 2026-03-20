@@ -1,21 +1,3 @@
-"""
-=============================================================================
-  ARVYAX MENTAL WELLNESS AI — LOCAL FLASK API
-=============================================================================
-  Endpoints:
-    POST /predict   → full prediction + decision + message
-    GET  /health    → health check
-    GET  /states    → list valid emotional states
-=============================================================================
-  Run:  python app.py
-  Test: curl -X POST http://localhost:5000/predict \
-          -H "Content-Type: application/json" \
-          -d '{"journal_text": "Feeling a bit anxious today",
-               "sleep_hours": 5, "stress_level": 4, "energy_level": 2,
-               "time_of_day": "morning"}'
-=============================================================================
-"""
-
 import pickle
 import numpy as np
 import pandas as pd
