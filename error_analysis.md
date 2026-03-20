@@ -24,22 +24,22 @@ The following cases represent instances where the model either provided an incor
 ## 2. Deep Dive Insights
 
 ### A. The Challenge of Short Inputs
-**Problem:** Inputs like "fine i guess" or "still heavy" do not provide enough tokens for the TF-IDF vectorizer.
-**Why it fails:** TF-IDF calculates word importance relative to the whole dataset. In 2-word sentences, the "importance" is diluted, and the model defaults to the most frequent class (usually "Calm") as a statistical prior.
+**Problem:** Inputs like "fine i guess" or "still heavy" do not provide enough tokens for the TF-IDF vectorizer.\
+**Why it fails:** TF-IDF calculates word importance relative to the whole dataset. In 2-word sentences, the "importance" is diluted, and the model defaults to the most frequent class (usually "Calm") as a statistical prior.\
 **Improvement:** Implement a rule-based fallback. If word count < 4, the model should increase the weight of `stress_level` and `energy_level` to 80% of the final decision.
 
 ### B. Conflicting Signals (Text vs. Metadata)
-**Problem:** A user reports positive words ("I'm okay") but high physiological stress (Stress Level 5).
-**Why it fails:** The Gradient Boosting model sees a high TF-IDF score for "okay" and a high score for "Stress: 5." In many cases, the linguistic signal "voted" louder than the numerical signal.
+**Problem:** A user reports positive words ("I'm okay") but high physiological stress (Stress Level 5).\
+**Why it fails:** The Gradient Boosting model sees a high TF-IDF score for "okay" and a high score for "Stress: 5." In many cases, the linguistic signal "voted" louder than the numerical signal.\
 **Improvement:** Create an "Interaction Feature" ($Stress \times Energy$). This allows the model to learn that positive words combined with high stress usually indicate "Overwhelmed" (Masked Distress).
 
 ### C. Noisy Labels in Training Data
-**Problem:** The dataset contains "ground truth" labels that contradict the text (e.g., Row 731).
-**Why it fails:** This "pollutes" the model's brain. If the model is told "grounded" means Intensity 5 (Crisis), it will begin over-predicting intensity for calm users.
+**Problem:** The dataset contains "ground truth" labels that contradict the text (e.g., Row 731).\
+**Why it fails:** This "pollutes" the model's brain. If the model is told "grounded" means Intensity 5 (Crisis), it will begin over-predicting intensity for calm users.\
 **Improvement:** Use **Cross-Validated Out-of-Fold (OOF)** predictions to identify samples with high loss. These samples should be manually audited and corrected to ensure a clean "Gold Standard" dataset.
 
 ### D. Regression Toward the Mean (Intensity Bias)
-**Problem:** Most Intensity predictions in `predictions.csv` hover between 2.5 and 3.5.
-**Why it fails:** This is a classic trait of Gradient Boosting Regressors. To minimize the Mean Absolute Error (MAE), the model avoids extreme guesses (1 or 5) to stay "safe."
+**Problem:** Most Intensity predictions in `predictions.csv` hover between 2.5 and 3.5.\
+**Why it fails:** This is a classic trait of Gradient Boosting Regressors. To minimize the Mean Absolute Error (MAE), the model avoids extreme guesses (1 or 5) to stay "safe."\
 **Improvement:** Apply **Quantile Regression** to specifically target the 90th percentile of intensity (the crisis cases), ensuring the AI doesn't "soften" a user's distress.
 
