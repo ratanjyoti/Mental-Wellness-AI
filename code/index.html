@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arvyax — Mental Wellness AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ── Reset & Base ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --sage-50:  #f4f7f4;
+  --sage-100: #e6ede6;
+  --sage-200: #cddccd;
+  --sage-300: #a8c4a8;
+  --sage-400: #7da87d;
+  --sage-500: #5a8c5a;
+  --sage-600: #456e45;
+  --sage-700: #385738;
+
+  --blue-50:  #f0f5fb;
+  --blue-100: #dceaf5;
+  --blue-200: #b8d4eb;
+  --blue-300: #8ab8db;
+  --blue-400: #5e9bc8;
+  --blue-500: #3d7db0;
+
+  --mist:     #f7f9f7;
+  --white:    #ffffff;
+  --ink-900:  #1a2a1a;
+  --ink-700:  #2e4a2e;
+  --ink-500:  #4a6b4a;
+  --ink-300:  #7a9e7a;
+  --ink-100:  #c8ddc8;
+
+  --warm-50:  #fdf8f0;
+  --amber:    #c9975a;
+
+  --glass-bg:     rgba(255,255,255,0.55);
+  --glass-border: rgba(255,255,255,0.75);
+  --glass-shadow: 0 8px 40px rgba(58,100,58,0.10), 0 2px 12px rgba(58,100,58,0.06);
+
+  --radius-sm:  8px;
+  --radius-md:  16px;
+  --radius-lg:  24px;
+  --radius-xl:  36px;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background-color: var(--mist);
+  color: var(--ink-900);
+  min-height: 100vh;
+  overflow-x: hidden;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* ── Ambient Background ───────────────────────────────────── */
+.bg-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 70% 60% at 15% 20%, rgba(168,196,168,0.28) 0%, transparent 60%),
+    radial-gradient(ellipse 55% 50% at 85% 75%, rgba(138,184,219,0.22) 0%, transparent 55%),
+    radial-gradient(ellipse 45% 40% at 50% 50%, rgba(168,196,168,0.12) 0%, transparent 65%),
+    linear-gradient(160deg, #f4f7f4 0%, #f0f5fb 45%, #f4f7f4 100%);
+  pointer-events: none;
+}
+
+/* floating orbs */
+.orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  animation: orbFloat 18s ease-in-out infinite;
+}
+.orb-1 {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(125,168,125,0.18) 0%, transparent 70%);
+  top: -120px; left: -100px;
+  animation-delay: 0s;
+}
+.orb-2 {
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(94,155,200,0.15) 0%, transparent 70%);
+  bottom: 0; right: -80px;
+  animation-delay: -7s;
+}
+.orb-3 {
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(168,196,168,0.13) 0%, transparent 70%);
+  top: 40%; left: 55%;
+  animation-delay: -13s;
+}
+
+@keyframes orbFloat {
+  0%   { opacity: 1; transform: translate(0,0) scale(1); }
+  33%  { transform: translate(20px,-30px) scale(1.05); }
+  66%  { transform: translate(-15px,20px) scale(0.97); }
+  100% { opacity: 1; transform: translate(0,0) scale(1); }
+}
+
+/* ── Layout ───────────────────────────────────────────────── */
+.page-wrap {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 20px 80px;
+}
+
+/* ── Header ───────────────────────────────────────────────── */
+header {
+  padding: 52px 0 40px;
+  text-align: center;
+  animation: fadeUp 0.8s var(--ease-out) both;
+}
+
+.logo-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--sage-300), var(--blue-300));
+  margin-bottom: 20px;
+  box-shadow: 0 4px 16px rgba(90,140,90,0.22);
+}
+
+.logo-mark svg {
+  width: 26px; height: 26px;
+  stroke: white;
+  stroke-width: 1.8;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+h1 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(36px, 7vw, 54px);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  color: var(--ink-700);
+  line-height: 1.1;
+  margin-bottom: 8px;
+}
+
+h1 em {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--sage-500);
+}
+
+.tagline {
+  font-size: 14px;
+  color: var(--ink-300);
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ── Glass Card ───────────────────────────────────────────── */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  box-shadow: var(--glass-shadow);
+  border-radius: var(--radius-lg);
+}
+
+/* ── Form Card ────────────────────────────────────────────── */
+.form-card {
+  padding: 36px 40px 40px;
+  margin-bottom: 20px;
+  animation: fadeUp 0.8s var(--ease-out) 0.15s both;
+}
+
+@media (max-width: 600px) {
+  .form-card { padding: 28px 24px 32px; }
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sage-500);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-label::before {
+  content: '';
+  display: block;
+  width: 18px; height: 1px;
+  background: var(--sage-400);
+}
+
+/* ── Textarea ─────────────────────────────────────────────── */
+.journal-wrap {
+  position: relative;
+  margin-bottom: 36px;
+}
+
+.journal-label {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px;
+  font-weight: 300;
+  color: var(--ink-700);
+  margin-bottom: 14px;
+  display: block;
+  line-height: 1.3;
+}
+
+.journal-label em { font-style: italic; color: var(--sage-500); }
+
+textarea#journal {
+  width: 100%;
+  min-height: 160px;
+  max-height: 360px;
+  padding: 20px 22px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 17px;
+  font-weight: 300;
+  line-height: 1.7;
+  color: var(--ink-700);
+  background: rgba(255,255,255,0.6);
+  border: 1px solid rgba(168,196,168,0.5);
+  border-radius: var(--radius-md);
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
+  caret-color: var(--sage-500);
+}
+
+textarea#journal::placeholder {
+  color: var(--ink-100);
+  font-style: italic;
+}
+
+textarea#journal:focus {
+  border-color: var(--sage-300);
+  background: rgba(255,255,255,0.85);
+  box-shadow: 0 0 0 4px rgba(125,168,125,0.10), 0 2px 12px rgba(58,100,58,0.07);
+}
+
+.char-count {
+  position: absolute;
+  bottom: 10px; right: 14px;
+  font-size: 11px;
+  color: var(--ink-100);
+  transition: color 0.2s;
+  pointer-events: none;
+}
+
+/* ── Divider ──────────────────────────────────────────────── */
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(168,196,168,0.35), transparent);
+  margin: 28px 0;
+}
+
+/* ── Sliders ──────────────────────────────────────────────── */
+.sliders-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 28px 24px;
+}
+
+@media (max-width: 560px) {
+  .sliders-grid { grid-template-columns: 1fr; gap: 22px; }
+}
+
+.slider-group { display: flex; flex-direction: column; }
+
+.slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.slider-name {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--ink-500);
+  text-transform: uppercase;
+}
+
+.slider-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--sage-500);
+  min-width: 28px;
+  text-align: right;
+  line-height: 1;
+  transition: transform 0.15s var(--ease-spring), color 0.2s;
+}
+
+.slider-val.pop {
+  transform: scale(1.25);
+  color: var(--sage-600);
+}
+
+.slider-track { position: relative; padding: 6px 0; }
+
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--sage-300) 0%,
+    var(--sage-300) var(--pct, 50%),
+    rgba(168,196,168,0.25) var(--pct, 50%),
+    rgba(168,196,168,0.25) 100%
+  );
+  outline: none;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid var(--sage-400);
+  box-shadow: 0 2px 8px rgba(90,140,90,0.2);
+  cursor: pointer;
+  transition: transform 0.15s var(--ease-spring), box-shadow 0.2s, border-color 0.2s;
+}
+
+input[type=range]::-moz-range-thumb {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid var(--sage-400);
+  box-shadow: 0 2px 8px rgba(90,140,90,0.2);
+  cursor: pointer;
+  transition: transform 0.15s var(--ease-spring);
+}
+
+input[type=range]:hover::-webkit-slider-thumb,
+input[type=range]:focus::-webkit-slider-thumb {
+  transform: scale(1.2);
+  box-shadow: 0 3px 12px rgba(90,140,90,0.28);
+  border-color: var(--sage-500);
+}
+
+.slider-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  padding: 0 2px;
+}
+
+.slider-ticks span {
+  font-size: 10px;
+  color: var(--ink-100);
+  font-weight: 400;
+}
+
+/* ── Time & Mood Row ─────────────────────────────────────── */
+.meta-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 28px;
+}
+
+@media (max-width: 440px) {
+  .meta-row { grid-template-columns: 1fr; gap: 14px; }
+}
+
+.select-group label {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-300);
+  margin-bottom: 8px;
+}
+
+.select-wrap {
+  position: relative;
+}
+
+.select-wrap::after {
+  content: '';
+  position: absolute;
+  right: 14px; top: 50%;
+  transform: translateY(-50%);
+  width: 0; height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--sage-400);
+  pointer-events: none;
+}
+
+select {
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 12px 38px 12px 16px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: var(--ink-700);
+  background: rgba(255,255,255,0.55);
+  border: 1px solid rgba(168,196,168,0.45);
+  border-radius: var(--radius-sm);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+select:focus {
+  border-color: var(--sage-300);
+  background: rgba(255,255,255,0.85);
+}
+
+/* ── Submit Button ────────────────────────────────────────── */
+.submit-wrap {
+  margin-top: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+button#analyzeBtn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 44px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: white;
+  background: linear-gradient(135deg, var(--sage-500) 0%, var(--blue-400) 100%);
+  border: none;
+  border-radius: 100px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.2s var(--ease-spring), box-shadow 0.25s;
+  box-shadow: 0 4px 20px rgba(90,140,90,0.3), 0 2px 6px rgba(90,140,90,0.2);
+  min-width: 220px;
+}
+
+button#analyzeBtn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+}
+
+button#analyzeBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(90,140,90,0.38), 0 4px 10px rgba(90,140,90,0.22);
+}
+
+button#analyzeBtn:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 12px rgba(90,140,90,0.28);
+}
+
+button#analyzeBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-icon { width: 18px; height: 18px; flex-shrink: 0; }
+.btn-icon path { stroke: white; fill: none; stroke-width: 1.8; stroke-linecap: round; }
+
+.hint-text {
+  font-size: 12px;
+  color: var(--ink-100);
+  font-weight: 300;
+}
+
+/* ── Breathing Loader ─────────────────────────────────────── */
+#breatheLoader {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 40px;
+  margin-bottom: 20px;
+  text-align: center;
+  animation: fadeIn 0.4s ease both;
+}
+
+#breatheLoader.visible { display: flex; }
+
+.breathe-ring {
+  position: relative;
+  width: 100px; height: 100px;
+  margin-bottom: 28px;
+}
+
+.breathe-ring .ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  animation: breatheExpand 4s ease-in-out infinite;
+}
+
+.breathe-ring .ring-1 {
+  border-color: rgba(125,168,125,0.6);
+}
+.breathe-ring .ring-2 {
+  inset: 10px;
+  border-color: rgba(94,155,200,0.5);
+  animation-delay: 0.5s;
+}
+.breathe-ring .ring-3 {
+  inset: 22px;
+  border-color: rgba(125,168,125,0.7);
+  animation-delay: 1s;
+}
+
+.breathe-ring .core {
+  position: absolute;
+  inset: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--sage-300), var(--blue-300));
+  animation: breathePulse 4s ease-in-out infinite;
+  box-shadow: 0 0 0 0 rgba(125,168,125,0.4);
+}
+
+@keyframes breatheExpand {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.18); opacity: 1; }
+}
+
+@keyframes breathePulse {
+  0%, 100% { transform: scale(0.88); box-shadow: 0 0 0 0 rgba(125,168,125,0.4); }
+  50% { transform: scale(1.08); box-shadow: 0 0 0 12px rgba(125,168,125,0); }
+}
+
+.breathe-label {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px;
+  font-weight: 300;
+  color: var(--ink-500);
+  margin-bottom: 6px;
+  animation: breatheText 4s ease-in-out infinite;
+}
+
+@keyframes breatheText {
+  0%, 100% { content: ''; }
+  0% { opacity: 0.7; }
+  25% { opacity: 1; }
+  75% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+.breathe-sub {
+  font-size: 12px;
+  color: var(--ink-100);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  animation: breathePhase 4s ease-in-out infinite;
+}
+
+@keyframes breathePhase {
+  0%   { opacity: 0; }
+  10%  { opacity: 1; }
+  40%  { opacity: 1; }
+  50%  { opacity: 0; }
+  60%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ── Results Section ──────────────────────────────────────── */
+#results {
+  display: none;
+  animation: fadeUp 0.6s var(--ease-out) both;
+}
+
+#results.visible { display: block; }
+
+.results-header {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sage-500);
+  text-align: center;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.results-header::before, .results-header::after {
+  content: '';
+  flex: 1;
+  max-width: 60px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--sage-300));
+}
+
+.results-header::after {
+  background: linear-gradient(90deg, var(--sage-300), transparent);
+}
+
+/* ── Result Cards Grid ────────────────────────────────────── */
+.cards-primary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 480px) {
+  .cards-primary { grid-template-columns: 1fr; }
+}
+
+.result-card {
+  padding: 24px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: fadeUp 0.5s var(--ease-out) both;
+  transition: transform 0.25s var(--ease-spring), box-shadow 0.25s;
+}
+
+.result-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 48px rgba(58,100,58,0.13), 0 4px 16px rgba(58,100,58,0.08);
+}
+
+.card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sage-500);
+  margin-bottom: 4px;
+}
+
+.card-badge-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--sage-300);
+  flex-shrink: 0;
+}
+
+.card-value-large {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 32px;
+  font-weight: 300;
+  color: var(--ink-700);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  text-transform: capitalize;
+}
+
+.card-value-large em {
+  font-style: italic;
+  color: var(--sage-500);
+}
+
+/* intensity display */
+.intensity-dots {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+  align-items: center;
+}
+
+.i-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: rgba(168,196,168,0.3);
+  transition: background 0.3s, transform 0.3s;
+}
+
+.i-dot.lit { background: var(--sage-400); transform: scale(1.15); }
+.i-dot.high { background: var(--amber); }
+
+.confidence-bar {
+  margin-top: 6px;
+}
+
+.conf-label {
+  font-size: 11px;
+  color: var(--ink-300);
+  margin-bottom: 5px;
+}
+
+.conf-track {
+  height: 3px;
+  background: rgba(168,196,168,0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.conf-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--sage-300), var(--blue-300));
+  transition: width 1s var(--ease-out);
+  width: 0%;
+}
+
+/* ── Action Plan Card ─────────────────────────────────────── */
+.action-card {
+  padding: 26px 30px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  animation: fadeUp 0.5s var(--ease-out) 0.1s both;
+  transition: transform 0.25s var(--ease-spring), box-shadow 0.25s;
+}
+
+.action-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 48px rgba(58,100,58,0.13), 0 4px 16px rgba(58,100,58,0.08);
+}
+
+.action-icon-wrap {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(168,196,168,0.35), rgba(138,184,219,0.3));
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.action-icon-wrap svg {
+  width: 24px; height: 24px;
+  stroke: var(--sage-600);
+  fill: none;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.action-text { flex: 1; min-width: 160px; }
+
+.action-title {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sage-500);
+  margin-bottom: 6px;
+}
+
+.action-main {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 26px;
+  font-weight: 300;
+  color: var(--ink-700);
+  text-transform: capitalize;
+  line-height: 1.2;
+}
+
+.action-timing {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 5px 12px;
+  background: rgba(125,168,125,0.12);
+  border: 1px solid rgba(125,168,125,0.2);
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--sage-600);
+}
+
+.timing-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--sage-400);
+  animation: timingPulse 2s ease-in-out infinite;
+}
+
+@keyframes timingPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+/* ── Message Card ─────────────────────────────────────────── */
+.message-card {
+  padding: 32px 36px;
+  margin-bottom: 14px;
+  position: relative;
+  overflow: hidden;
+  animation: fadeUp 0.5s var(--ease-out) 0.2s both;
+  transition: transform 0.25s var(--ease-spring), box-shadow 0.25s;
+}
+
+.message-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 48px rgba(58,100,58,0.13), 0 4px 16px rgba(58,100,58,0.08);
+}
+
+.message-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--sage-300), var(--blue-300), var(--sage-300));
+}
+
+.message-quote-mark {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 72px;
+  line-height: 0.5;
+  color: rgba(125,168,125,0.2);
+  position: absolute;
+  top: 28px; left: 28px;
+  user-select: none;
+  pointer-events: none;
+}
+
+.message-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--sage-400);
+  margin-bottom: 16px;
+}
+
+.message-text {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(18px, 3vw, 21px);
+  font-weight: 300;
+  color: var(--ink-700);
+  line-height: 1.65;
+  font-style: italic;
+  position: relative;
+}
+
+/* ── Uncertainty Banner ───────────────────────────────────── */
+.uncertainty-banner {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  background: rgba(201,151,90,0.08);
+  border: 1px solid rgba(201,151,90,0.25);
+  border-radius: var(--radius-md);
+  margin-bottom: 14px;
+  animation: fadeIn 0.4s ease both;
+}
+
+.uncertainty-banner.visible { display: flex; }
+
+.uncertainty-icon {
+  width: 32px; height: 32px; flex-shrink: 0;
+  border-radius: 50%;
+  background: rgba(201,151,90,0.15);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+
+.uncertainty-text {
+  font-size: 13px;
+  color: var(--amber);
+  line-height: 1.5;
+}
+
+.uncertainty-text strong { font-weight: 500; }
+
+/* ── Footer ───────────────────────────────────────────────── */
+footer {
+  text-align: center;
+  padding-top: 40px;
+  animation: fadeIn 1s ease 0.5s both;
+}
+
+.footer-text {
+  font-size: 12px;
+  color: var(--ink-100);
+  letter-spacing: 0.05em;
+}
+
+.footer-text a {
+  color: var(--sage-400);
+  text-decoration: none;
+}
+
+/* ── Animations ───────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Error Toast ──────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 28px; left: 50%; transform: translateX(-50%);
+  padding: 14px 24px;
+  background: rgba(30,30,30,0.88);
+  backdrop-filter: blur(12px);
+  color: white;
+  border-radius: 100px;
+  font-size: 13px;
+  z-index: 100;
+  display: none;
+  animation: toastIn 0.3s var(--ease-out) both;
+  white-space: nowrap;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+
+.toast.visible { display: block; }
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── Scrollbar ────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(168,196,168,0.4); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- Ambient Background -->
+<div class="bg-canvas"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<div class="page-wrap">
+
+  <!-- Header -->
+  <header>
+    <div class="logo-mark">
+      <svg viewBox="0 0 26 26">
+        <path d="M13 4 C13 4, 8 8, 8 13 C8 18, 13 22, 13 22" />
+        <path d="M13 4 C13 4, 18 8, 18 13 C18 18, 13 22, 13 22" />
+        <circle cx="13" cy="13" r="2.5" fill="rgba(255,255,255,0.9)" stroke="none"/>
+        <path d="M7 10 C9.5 9, 12 9.5, 13 10.5" opacity="0.6"/>
+        <path d="M19 10 C16.5 9, 14 9.5, 13 10.5" opacity="0.6"/>
+      </svg>
+    </div>
+    <h1>Arvy<em>ax</em></h1>
+    <p class="tagline">Your mindful wellness companion</p>
+  </header>
+
+  <!-- Main Form Card -->
+  <div class="glass form-card">
+
+    <!-- Journal Textarea -->
+    <div class="journal-wrap">
+      <label class="journal-label" for="journal">
+        How are you feeling after your <em>session?</em>
+      </label>
+      <div class="section-label">Your reflection</div>
+      <textarea
+        id="journal"
+        placeholder="Write freely… describe what came up for you. There's no right or wrong answer here."
+        maxlength="2000"
+        rows="6"
+        oninput="updateCharCount(this)"
+      ></textarea>
+      <span class="char-count" id="charCount">0 / 2000</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Sliders -->
+    <div class="section-label" style="margin-bottom: 20px;">How you feel right now</div>
+    <div class="sliders-grid">
+
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-name">Stress</span>
+          <span class="slider-val" id="stressVal">3</span>
+        </div>
+        <div class="slider-track">
+          <input type="range" id="stressSlider" min="1" max="5" step="1" value="3"
+            oninput="updateSlider(this, 'stressVal', 1, 5)" />
+        </div>
+        <div class="slider-ticks">
+          <span>Low</span><span></span><span></span><span></span><span>High</span>
+        </div>
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-name">Energy</span>
+          <span class="slider-val" id="energyVal">3</span>
+        </div>
+        <div class="slider-track">
+          <input type="range" id="energySlider" min="1" max="5" step="1" value="3"
+            oninput="updateSlider(this, 'energyVal', 1, 5)" />
+        </div>
+        <div class="slider-ticks">
+          <span>Low</span><span></span><span></span><span></span><span>High</span>
+        </div>
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-name">Sleep</span>
+          <span class="slider-val" id="sleepVal">7<span style="font-size:12px;opacity:.6">h</span></span>
+        </div>
+        <div class="slider-track">
+          <input type="range" id="sleepSlider" min="1" max="10" step="0.5" value="7"
+            oninput="updateSlider(this, 'sleepVal', 1, 10, true)" />
+        </div>
+        <div class="slider-ticks">
+          <span>1h</span><span></span><span></span><span></span><span>10h</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Time of Day & Mood -->
+    <div class="meta-row">
+      <div class="select-group">
+        <label for="timeSelect">Time of day</label>
+        <div class="select-wrap">
+          <select id="timeSelect">
+            <option value="morning">Morning</option>
+            <option value="afternoon">Afternoon</option>
+            <option value="evening" selected>Evening</option>
+            <option value="night">Night</option>
+          </select>
+        </div>
+      </div>
+      <div class="select-group">
+        <label for="moodSelect">Yesterday's mood</label>
+        <div class="select-wrap">
+          <select id="moodSelect">
+            <option value="">— prefer not to say —</option>
+            <option value="positive">Positive ✦</option>
+            <option value="neutral" selected>Neutral</option>
+            <option value="negative">Difficult</option>
+            <option value="mixed">Mixed</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit -->
+    <div class="submit-wrap">
+      <button id="analyzeBtn" onclick="analyze()">
+        <svg class="btn-icon" viewBox="0 0 18 18">
+          <path d="M9 3.5 C9 3.5, 6 5.5, 6 9 C6 12.5, 9 14.5, 9 14.5" stroke-width="1.5"/>
+          <path d="M9 3.5 C9 3.5, 12 5.5, 12 9 C12 12.5, 9 14.5, 9 14.5" stroke-width="1.5"/>
+          <circle cx="9" cy="9" r="1.8" fill="white" stroke="none"/>
+        </svg>
+        Reflect with Arvyax
+      </button>
+      <span class="hint-text">Your words stay private — processed locally</span>
+    </div>
+
+  </div><!-- /form-card -->
+
+  <!-- Breathing Loader -->
+  <div id="breatheLoader" class="glass">
+    <div class="breathe-ring">
+      <div class="ring ring-1"></div>
+      <div class="ring ring-2"></div>
+      <div class="ring ring-3"></div>
+      <div class="core"></div>
+    </div>
+    <p class="breathe-label">Breathe in…</p>
+    <p class="breathe-sub" id="breatheSub">Analysing your reflection</p>
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+
+    <div class="results-header">Your insight</div>
+
+    <!-- Uncertainty Banner -->
+    <div class="uncertainty-banner" id="uncertaintyBanner">
+      <div class="uncertainty-icon">☁</div>
+      <div class="uncertainty-text">
+        <strong>Low certainty signal.</strong>
+        <span id="uncertainReasons"> Your reflection is brief or some signals are missing — the reading may be approximate.</span>
+      </div>
+    </div>
+
+    <!-- State + Intensity Cards -->
+    <div class="cards-primary">
+      <div class="glass result-card" style="animation-delay:0s">
+        <div class="card-badge"><span class="card-badge-dot"></span> Emotional state</div>
+        <div class="card-value-large" id="stateValue">—</div>
+        <div class="confidence-bar">
+          <div class="conf-label" id="confLabel">Confidence — %</div>
+          <div class="conf-track"><div class="conf-fill" id="confFill"></div></div>
+        </div>
+      </div>
+
+      <div class="glass result-card" style="animation-delay:0.05s">
+        <div class="card-badge"><span class="card-badge-dot"></span> Intensity</div>
+        <div class="card-value-large" id="intensityValue">—</div>
+        <div class="intensity-dots" id="intensityDots">
+          <div class="i-dot" data-i="1"></div>
+          <div class="i-dot" data-i="2"></div>
+          <div class="i-dot" data-i="3"></div>
+          <div class="i-dot" data-i="4"></div>
+          <div class="i-dot" data-i="5"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Plan Card -->
+    <div class="glass action-card" id="actionCard">
+      <div class="action-icon-wrap" id="actionIconWrap">
+        <!-- icon injected by JS -->
+        <svg viewBox="0 0 24 24"><path d="M12 2C12 2 7 6 7 12C7 18 12 22 12 22"/><path d="M12 2C12 2 17 6 17 12C17 18 12 22 12 22"/></svg>
+      </div>
+      <div class="action-text">
+        <div class="action-title">Recommended action</div>
+        <div class="action-main" id="actionMain">—</div>
+        <div class="action-timing" id="actionTiming">
+          <span class="timing-dot"></span>
+          <span id="timingText">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Supportive Message Card -->
+    <div class="glass message-card">
+      <div class="message-quote-mark">"</div>
+      <div class="message-label">A note from Arvyax</div>
+      <p class="message-text" id="messageText">—</p>
+    </div>
+
+  </div><!-- /results -->
+
+  <footer>
+    <p class="footer-text">Arvyax · Local inference · No data leaves your device</p>
+  </footer>
+
+</div><!-- /page-wrap -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ── Slider Logic ─────────────────────────────────────────── */
+function updateSlider(el, valId, min, max, isSleep = false) {
+  const v = parseFloat(el.value);
+  const pct = ((v - min) / (max - min)) * 100;
+  el.style.setProperty('--pct', pct + '%');
+
+  const display = isSleep
+    ? `${v}<span style="font-size:12px;opacity:.6">h</span>`
+    : `${v}`;
+  const valEl = document.getElementById(valId);
+  valEl.innerHTML = display;
+  valEl.classList.add('pop');
+  setTimeout(() => valEl.classList.remove('pop'), 200);
+}
+
+function updateCharCount(el) {
+  document.getElementById('charCount').textContent = `${el.value.length} / 2000`;
+}
+
+/* init slider tracks */
+window.addEventListener('DOMContentLoaded', () => {
+  ['stressSlider','energySlider','sleepSlider'].forEach(id => {
+    const el = document.getElementById(id);
+    el.dispatchEvent(new Event('input'));
+  });
+});
+
+/* ── Breathe Text Cycle ───────────────────────────────────── */
+const breathePhrases = ['Breathe in…','Hold…','Breathe out…','Hold…'];
+let breatheIdx = 0;
+let breatheTimer = null;
+
+function startBreathe() {
+  breatheIdx = 0;
+  document.querySelector('.breathe-label').textContent = breathePhrases[0];
+  breatheTimer = setInterval(() => {
+    breatheIdx = (breatheIdx + 1) % breathePhrases.length;
+    document.querySelector('.breathe-label').textContent = breathePhrases[breatheIdx];
+  }, 1000);
+}
+
+function stopBreathe() {
+  clearInterval(breatheTimer);
+}
+
+/* ── Show / Hide State ────────────────────────────────────── */
+function showLoader() {
+  document.getElementById('breatheLoader').classList.add('visible');
+  document.getElementById('results').classList.remove('visible');
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('analyzeBtn').disabled = true;
+  startBreathe();
+}
+
+function hideLoader() {
+  document.getElementById('breatheLoader').classList.remove('visible');
+  document.getElementById('analyzeBtn').disabled = false;
+  stopBreathe();
+}
+
+function showResults() {
+  const el = document.getElementById('results');
+  el.style.display = 'block';
+  requestAnimationFrame(() => el.classList.add('visible'));
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ── Toast ────────────────────────────────────────────────── */
+function showToast(msg, duration = 3500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('visible');
+  setTimeout(() => t.classList.remove('visible'), duration);
+}
+
+/* ── Action Icons SVG map ─────────────────────────────────── */
+const ACTION_ICONS = {
+  box_breathing:  `<path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><rect x="7" y="7" width="10" height="10" rx="2"/>`,
+  deep_work:      `<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>`,
+  rest:           `<path d="M2 4v16"/><path d="M22 4v16"/><path d="M2 12h20"/><path d="M12 12v8"/>`,
+  grounding:      `<circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>`,
+  movement:       `<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>`,
+  light_planning: `<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>`,
+  journaling:     `<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>`,
+  sound_therapy:  `<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>`,
+  yoga:           `<circle cx="12" cy="5" r="2"/><path d="M12 7v5l-4 4M12 12l4 4M8 21h8"/>`,
+  pause:          `<circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/>`,
+};
+
+const TIMING_MAP = {
+  now:              'Right now',
+  within_15_min:    'Within 15 minutes',
+  later_today:      'Later today',
+  tonight:          'Tonight',
+  tomorrow_morning: 'Tomorrow morning',
+};
+
+const STATE_LABELS = {
+  calm:        'Calm',
+  focused:     'Focused',
+  restless:    'Restless',
+  anxious:     'Anxious',
+  overwhelmed: 'Overwhelmed',
+  mixed:       'Mixed feelings',
+};
+
+/* ── Render Results ───────────────────────────────────────── */
+function renderResults(data) {
+  /* State */
+  const stateName = STATE_LABELS[data.predicted_state] || data.predicted_state;
+  document.getElementById('stateValue').textContent = stateName;
+
+  /* Confidence bar */
+  const confPct = Math.round((data.confidence || 0) * 100);
+  document.getElementById('confLabel').textContent = `Confidence — ${confPct}%`;
+  setTimeout(() => {
+    document.getElementById('confFill').style.width = confPct + '%';
+  }, 200);
+
+  /* Intensity dots */
+  const intensity = data.predicted_intensity || 1;
+  const labels = ['—','Minimal','Mild','Moderate','Notable','Strong'];
+  document.getElementById('intensityValue').textContent = labels[intensity] || intensity;
+  document.querySelectorAll('.i-dot').forEach(dot => {
+    const i = parseInt(dot.dataset.i);
+    dot.classList.toggle('lit', i <= intensity);
+    dot.classList.toggle('high', i <= intensity && intensity >= 4);
+  });
+
+  /* Action */
+  const action = (data.what_to_do || 'pause').replace(/_/g,' ');
+  document.getElementById('actionMain').textContent = action;
+  document.getElementById('timingText').textContent = TIMING_MAP[data.when_to_do] || data.when_to_do;
+
+  /* Action icon */
+  const iconPaths = ACTION_ICONS[data.what_to_do] || ACTION_ICONS.pause;
+  document.getElementById('actionIconWrap').innerHTML =
+    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+          stroke-linecap="round" stroke-linejoin="round" width="24" height="24">${iconPaths}</svg>`;
+
+  /* Message */
+  document.getElementById('messageText').textContent = data.supportive_message || '—';
+
+  /* Uncertainty */
+  const banner = document.getElementById('uncertaintyBanner');
+  if (data.uncertain_flag === 1) {
+    banner.classList.add('visible');
+    const reasons = Array.isArray(data.uncertainty_reasons)
+      ? data.uncertainty_reasons.join(', ')
+      : (data.uncertainty_reasons || '');
+    document.getElementById('uncertainReasons').textContent =
+      reasons ? ` Reasons: ${reasons}.` : ' The reading may be approximate.';
+  } else {
+    banner.classList.remove('visible');
+  }
+}
+
+/* ── Main Analyze Function ────────────────────────────────── */
+async function analyze() {
+  const journal = document.getElementById('journal').value.trim();
+  if (!journal) {
+    showToast('Please write a short reflection first ✦');
+    document.getElementById('journal').focus();
+    return;
+  }
+
+  const payload = {
+    journal_text:      journal,
+    stress_level:      parseFloat(document.getElementById('stressSlider').value),
+    energy_level:      parseFloat(document.getElementById('energySlider').value),
+    sleep_hours:       parseFloat(document.getElementById('sleepSlider').value),
+    time_of_day:       document.getElementById('timeSelect').value,
+    previous_day_mood: document.getElementById('moodSelect').value || null,
+  };
+
+  showLoader();
+
+  try {
+    const response = await fetch('http://localhost:5000/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || `Server error ${response.status}`);
+    }
+
+    const data = await response.json();
+    hideLoader();
+    renderResults(data);
+    showResults();
+
+  } catch (err) {
+    hideLoader();
+
+    /* ── Graceful offline fallback (demo mode) ── */
+    if (err.name === 'TypeError' && err.message.includes('fetch')) {
+      showToast('API offline — showing demo result ✦', 4000);
+      renderResults(getDemoResult(payload));
+      showResults();
+    } else {
+      showToast('Something went wrong: ' + err.message);
+    }
+  }
+}
+
+/* ── Demo Result (when API is offline) ───────────────────── */
+function getDemoResult(payload) {
+  const stress = payload.stress_level;
+  const energy = payload.energy_level;
+  const sleep  = payload.sleep_hours;
+  const text   = (payload.journal_text || '').toLowerCase();
+
+  let state = 'calm';
+  if (text.match(/anxious|worried|racing|edge|tense/)) state = 'anxious';
+  else if (text.match(/overwhelm|too much|cope|broke|heavy|swamp/)) state = 'overwhelmed';
+  else if (text.match(/focus|locked|deep work|sharp|flow/)) state = 'focused';
+  else if (text.match(/restless|can't sit|jumping|weird|agit/)) state = 'restless';
+  else if (stress >= 4) state = 'anxious';
+  else if (energy <= 2) state = 'overwhelmed';
+
+  const intensity = Math.min(5, Math.max(1, Math.round(
+    (stress * 0.5 + (6 - energy) * 0.3 + (8 - sleep) * 0.2)
+  )));
+
+  const actions = {
+    anxious:     ['box_breathing','sound_therapy'],
+    overwhelmed: ['rest','journaling'],
+    focused:     ['deep_work','light_planning'],
+    restless:    ['movement','grounding'],
+    calm:        ['light_planning','journaling'],
+  };
+
+  const what = (actions[state] || ['pause'])[stress >= 4 ? 0 : 1];
+  const when = stress >= 4 ? 'now' : (intensity >= 4 ? 'within_15_min' : 'later_today');
+
+  const messages = {
+    anxious:     "You seem a little on edge, which makes sense. Let's slow things down — try a breathing exercise and give yourself permission to pause. You've got this.",
+    overwhelmed: "Things seem quite heavy right now. Be kind to yourself — rest is not weakness, it's wisdom. One thing at a time.",
+    focused:     "You're in a wonderful flow state. Channel that clarity into your work. The conditions feel right for something meaningful.",
+    restless:    "I sense some extra energy looking for an outlet. A short walk or movement break would be the perfect release right now.",
+    calm:        "You seem to be in a peaceful headspace — a beautiful foundation for intentional action. Use this clarity well.",
+    mixed:       "You're navigating some complex feelings today, and that's okay. Ground yourself first, then take it one step at a time.",
+  };
+
+  return {
+    predicted_state:    state,
+    predicted_intensity: intensity,
+    confidence:         0.78,
+    uncertain_flag:     0,
+    uncertainty_reasons: [],
+    what_to_do:         what,
+    when_to_do:         when,
+    supportive_message: messages[state] || messages.calm,
+  };
+}
+
+/* ── Allow Enter to not submit, Shift+Enter for newline ───── */
+document.getElementById('journal').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    /* allow normal newline in textarea — no submit */
+  }
+});
+</script>
+</body>
+</html>
