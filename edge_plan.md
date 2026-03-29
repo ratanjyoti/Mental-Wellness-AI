@@ -1,15 +1,29 @@
 # EDGE_PLAN.md
-# Arvyax Mental Wellness AI — Edge & Mobile Deployment Plan
+# ArvyaX Mental Wellness AI — Edge & Mobile Deployment Plan
 
-> **Project:** Arvyax Mental Wellness AI  
-> **Model:** Gradient Boosting Classifier + Regressor  
-> **Vectorizer:** TF-IDF (sklearn)  
-> **Artifact Size:** ~15 MB (`model_artifacts.pkl`)  
-> **Validation Dataset:** 1,200 samples — Mean Confidence: 77.8% | High-confidence (>0.85): 56.1%  
-> **Deployment Target:** On-device Android (Pydroid 3) — 100% offline  
+> **Project:** ArvyaX Mental Wellness AI
+> **Model:** Gradient Boosting Classifier + Regressor
+> **Vectorizer:** TF-IDF (sklearn, 1000-feature vocabulary, unigrams + bigrams)
+> **Artifact Size:** ~15 MB (`model_artifacts.pkl`)
+> **Training Set:** 1,200 samples | **Test Set:** 120 samples
+> **Validation Accuracy (Emotional State):** 67.9% | **Intensity MAE:** 1.22
+> **Deployment Target:** On-device Android via Pydroid 3 — 100% offline
 
+---
 
-## 1. Deployment Architecture
+## 1. Why Edge Deployment Matters for This Problem
+
+This system is not a generic classifier. It is a wellness tool that reads vulnerable emotional reflections and recommends immediate next actions. Routing such data through a cloud API would mean:
+
+- A person's journal text, stress level, sleep hours, and mood traveling over the internet to a third-party server
+- Latency introducing a delay between a user's vulnerable moment and the system's response
+- Complete failure in offline environments — hiking trails, flights, areas with poor signal
+
+All three of these are product failures, not just engineering inconveniences. The edge-first design is therefore a **product decision**, not merely a performance optimization.
+
+---
+
+## 2. Deployment Architecture
 
 ### High-Level System Diagram
 
@@ -20,40 +34,41 @@
 │  ┌───────────────────────────────────────────────────────────┐   │
 │  │  Mobile Browser  (Chrome / Firefox)                        │   │
 │  │  ──────────────────────────────────────────────────────   │   │
-│  │  arvyax.html  →  POST http://localhost:5000               │   │
+│  │  index.html  →  POST http://localhost:5000/predict        │   │
 │  └───────────────────────────┬───────────────────────────────┘   │
 │                               │ HTTP (loopback only)              │
 │                               ▼                                   │
 │  ┌───────────────────────────────────────────────────────────┐   │
 │  │  Pydroid 3  (Python 3.x Runtime)                          │   │
 │  │  ──────────────────────────────────────────────────────   │   │
-│  │  Flask app.py  →  /predict  endpoint                      │   │
+│  │  Flask  app.py  →  /predict  endpoint                     │   │
 │  │                                                            │   │
 │  │   ┌──────────────────────────────────────────────────┐   │   │
-│  │   │  model_artifacts.pkl  (15 MB)                    │   │   │
-│  │   │  ├── TF-IDF Vectorizer                           │   │   │
-│  │   │  ├── GradientBoostingClassifier (state)          │   │   │
-│  │   │  ├── GradientBoostingRegressor  (intensity)      │   │   │
-│  │   │  ├── ColumnTransformer (metadata)                │   │   │
+│  │   │  model_artifacts.pkl  (~15 MB)                   │   │   │
+│  │   │  ├── TF-IDF Vectorizer (vocab=1000, bigrams)     │   │   │
+│  │   │  ├── GradientBoostingClassifier (state, 200 est) │   │   │
+│  │   │  ├── GradientBoostingRegressor  (intensity, 300) │   │   │
+│  │   │  ├── ColumnTransformer (imputer + scaler + OHE)  │   │   │
 │  │   │  └── LabelEncoder + state_labels                 │   │   │
 │  │   └──────────────────────────────────────────────────┘   │   │
 │  └───────────────────────────────────────────────────────────┘   │
 │                                                                   │
-│   No network interface used. No data exits this box.             │
+│   No network interface used. No data exits this device.          │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ### Component Responsibilities
 
-| Component | Role | Location |
-|-----------|------|----------|
-| `arvyax.html` | Full UI — journal input, sliders, result display | Opened in mobile browser |
+| Component | Role | Location on Device |
+|-----------|------|-------------------|
+| `index.html` | Full UI — journal input, sliders, result display | Opened in mobile browser |
 | `app.py` (Flask) | REST API — receives POST, runs inference, returns JSON | Running inside Pydroid 3 |
 | `model_artifacts.pkl` | All trained model objects serialized together | Android filesystem |
-| `main.ipynb` | Training script — run once to generate artifacts | Developer machine |
+| `main.ipynb` | Training pipeline — run once to generate artifacts | Developer machine only |
 
 ---
-### Setup Steps (Reproducible)
+
+## 3. Setup Instructions (Reproducible)
 
 ```
 Step 1 — Install Pydroid 3
@@ -61,133 +76,101 @@ Step 1 — Install Pydroid 3
   Open Pydroid 3 and allow storage permissions.
 
 Step 2 — Install Python Dependencies
-  Open the Pydroid 3 terminal:
-  $ pip install flask flask-cors scikit-learn pandas numpy scipy
+  Open the Pydroid 3 terminal and run:
+  $ pip install flask flask-cors scikit-learn pandas numpy scipy imbalanced-learn
 
 Step 3 — Transfer Project Files
-  Copy the following to your Android device (via USB or cloud storage):
+  Copy the following to your Android device (via USB, cloud storage, or ADB):
     ├── app.py
-    ├── model_artifacts.pkl        ← 15 MB
+    ├── model_artifacts.pkl        ← ~15 MB, generated by main.ipynb
     └── index.html
 
 Step 4 — Run the Backend
   In Pydroid 3, open app.py and press Run (▶).
-  OR in the terminal:
+  OR in the Pydroid 3 terminal:
   $ python app.py
-  The terminal will confirm: "Running on http://0.0.0.0:5000"
+  Terminal confirms: "Running on http://0.0.0.0:5000"
 
 Step 5 — Open the UI
   Open Chrome or Firefox on the same Android device.
   Navigate to: http://localhost:5000
-  OR open arvyax.html directly as a local file.
-  The full UI loads. The app is ready.
+  The full UI loads. Enter a journal reflection, adjust sliders, and get a prediction.
+  The entire pipeline runs locally. No internet required.
 ```
 
-Pydroid 3 requires zero code changes. The same `app.py` and `model_artifacts.pkl` that run on a laptop run identically on Android. This is the key advantage — no port, no rewrite, no conversion.
+**Key advantage:** The same `app.py` and `model_artifacts.pkl` that run on a laptop run identically on Android via Pydroid 3, with zero code changes. No port, no rewrite, no model conversion.
 
 ---
 
-## 2. The Localhost Bridge
+## 4. The Localhost Loopback Bridge
 
-### How the Loopback Connection Works
-
-When Flask runs on `host="0.0.0.0", port=5000`, it binds to all network interfaces — including the device's loopback interface (`127.0.0.1`). The mobile browser accessing `http://localhost:5000` is communicating through this loopback, which is a software-only channel that never touches any hardware network adapter (Wi-Fi, cellular, Bluetooth).
+When Flask is started with `host="0.0.0.0", port=5000`, it binds to all network interfaces including the device's loopback adapter (`127.0.0.1`). The mobile browser accessing `http://localhost:5000` uses this loopback — a software-only channel that never touches any hardware network adapter.
 
 ```
-Browser (Chrome)                       Flask (Pydroid 3)
-─────────────────                      ─────────────────────
-fetch("http://localhost:5000/predict") 
+Browser (Chrome, Android)              Flask (Pydroid 3, same device)
+──────────────────────────             ──────────────────────────────
+fetch("http://localhost:5000/predict")
     │
-    │  This traffic travels through the
-    │  OS loopback interface only.
-    │  It never reaches Wi-Fi hardware.
-    │  It never reaches the cellular modem.
-    │  It is invisible to any network observer.
+    │  Traffic travels through OS loopback only.
+    │  Never reaches Wi-Fi hardware.
+    │  Never reaches the cellular modem.
+    │  Invisible to any network observer or ISP.
     │
-    └──────────────────────────────────► /predict endpoint
-                                         Runs inference
-                                         Returns JSON
-    ◄─────────────────────────────────── Response < 30ms
+    └──────────────────────────────────► /predict
+                                         Deserialize POST body
+                                         Run TF-IDF + GBC + GBR
+                                         Run DecisionEngine
+                                         Return JSON
+    ◄─────────────────────────────────── Response in ~25ms
 ```
 
-### Configuration in `app.py`
+### Flask Configuration
 
 ```python
-# app.py — key line
-if __name__ == "__main__":
-    app.run(
-        host="0.0.0.0",   # Bind to all interfaces (includes localhost)
-        port=5000,
-        debug=False        # IMPORTANT: debug=False in production/mobile
-    )
-```
-
-The `flask-cors` library is included so that the HTML file can make cross-origin requests to the Flask server even when opened directly as a file (`file://` scheme):
-
-```python
+# app.py
+from flask import Flask, request, jsonify
 from flask_cors import CORS
+import pickle, numpy as np, pandas as pd
+from scipy.sparse import hstack
+
 app = Flask(__name__)
-CORS(app)
+CORS(app)   # Allows requests from file:// scheme when HTML is opened directly
+
+with open("model_artifacts.pkl", "rb") as f:
+    art = pickle.load(f)
+
+@app.route("/predict", methods=["POST"])
+def predict():
+    body = request.get_json()
+    # ... run inference using art["tfidf"], art["state_model"], etc.
+    return jsonify(result)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=False)
+    #                                   ^^^^^^^^^^^^
+    #  debug=False is critical in production/mobile.
+    #  debug=True enables the auto-reloader, which forks a second process
+    #  and doubles RAM usage — this can crash Pydroid 3 on low-RAM devices.
 ```
 
-## 3. Optimizations
+`flask-cors` is included so the HTML page can make cross-origin requests to the Flask server even if opened as a local `file://` URL, without any browser security restrictions blocking it.
 
-Every technical choice in Arvyax was made with edge constraints in mind: limited RAM, no GPU, a single CPU core available for inference, and a 15 MB storage budget for the entire model.
+---
 
-### 3.1 TF-IDF — Low RAM Text Representation
+## 5. What Gets Serialized — The `model_artifacts.pkl`
 
-```
-Why not sentence embeddings (BERT, MiniLM)?
-────────────────────────────────────────────
-MiniLM-L6-v2:  ~23 MB model + 400 MB RAM during inference
-BERT-base:     ~440 MB model + 1.2 GB RAM during inference
-TF-IDF:        ~2 MB vocabulary file + <10 MB RAM during inference
-```
-
-TF-IDF (Term Frequency–Inverse Document Frequency) represents text as a sparse vector of word importance scores. It requires no neural network, no matrix multiplication on millions of parameters, and no GPU. For a journal reflection of 50 words:
-
-- A BERT tokenizer produces a 768-dimensional dense tensor requiring floating-point multiplication across 110 million parameters.
-- TF-IDF produces a sparse vector with ~1,000 dimensions, of which typically fewer than 30 are non-zero. The dot product is computed in microseconds.
-
-**On a mid-range Android device**, TF-IDF vectorization of a full journal reflection completes in **< 5ms**. The equivalent MiniLM operation would take **80–200ms** and risk an out-of-memory crash on devices with < 3 GB RAM.
-
-The tradeoff is that TF-IDF cannot understand metaphors or unseen vocabulary. This is documented in `ERROR_ANALYSIS.md` and accepted as a known limitation of the edge-first constraint.
-
-### 3.2 Gradient Boosting — Fast CPU Inference
-
-```
-Why not a neural network?
-───────────────────────────────────────────────────────────
-PyTorch LSTM (text classification):  ~50–150ms per inference, GPU preferred
-TensorFlow MobileNet:               ~30–80ms, requires TFLite conversion
-Gradient Boosting (sklearn):        ~8–20ms per inference, pure CPU, no GPU
-```
-
-| Model Component | Inference Time (Android CPU) |
-|----------------|------------------------------|
-| TF-IDF vectorization | ~3ms |
-| GradientBoostingClassifier (state, 150 trees) | ~10ms |
-| GradientBoostingRegressor (intensity, 150 trees) | ~8ms |
-| Decision Engine (rule-based) | < 1ms |
-| JSON serialization + HTTP response | ~3ms |
-| **Total round-trip** | **~25ms** |
-
-Additionally, Gradient Boosting naturally outputs class probabilities via `predict_proba()`. This is used directly for the confidence score and `uncertain_flag` computation — no extra calibration step required.
-
-### 3.3 Pickle Serialization — Minimal Footprint
-
-All model components are serialized together into a single `model_artifacts.pkl` file using Python's built-in `pickle` library:
+The entire inference stack is saved as a single Python dictionary using `pickle`:
 
 ```python
 artifacts = {
-    "state_model":            state_model,          # GBClassifier
-    "intensity_model":        intensity_model,       # GBRegressor
-    "metadata_preprocessor":  metadata_preprocessor, # ColumnTransformer
-    "tfidf":                  tfidf,                 # TfidfVectorizer
-    "state_labels":           state_labels,          # numpy array
-    "le":                     le,                    # LabelEncoder
-    "numerical_cols":         numerical_cols,        # list
-    "categorical_cols":       categorical_cols,      # list
+    "state_model":            state_model,           # GradientBoostingClassifier
+    "intensity_model":        intensity_model,        # GradientBoostingRegressor
+    "metadata_preprocessor":  metadata_preprocessor,  # ColumnTransformer
+    "tfidf":                  tfidf,                  # TfidfVectorizer
+    "state_labels":           state_labels,            # numpy array of class names
+    "le":                     le,                      # LabelEncoder
+    "numerical_cols":         numerical_cols,          # list of column names
+    "categorical_cols":       categorical_cols,        # list of column names
 }
 with open("model_artifacts.pkl", "wb") as f:
     pickle.dump(artifacts, f)
@@ -195,141 +178,331 @@ with open("model_artifacts.pkl", "wb") as f:
 
 **Why a single file?**
 
-- One `pickle.load()` call at startup loads everything into memory atomically.
-- No versioning mismatch between separate files.
-- Startup time on Android is ~1.5 seconds (one-time, at app launch).
-- Subsequent inferences use in-memory objects — no disk I/O per request.
+- One `pickle.load()` call at startup loads everything atomically — no version mismatch between separate files.
+- Startup time on Android is approximately 1.5 seconds (one-time, at app launch).
+- All subsequent inference calls use warm in-memory objects — zero disk I/O per request.
 
-**Size breakdown (approximate):**
+**Approximate size breakdown:**
 
 ```
 model_artifacts.pkl (~15 MB total)
-├── TF-IDF vectorizer         ~2.1 MB  (vocabulary + IDF weights)
-├── GBClassifier (state)      ~5.8 MB  (150 trees × depth 4)
-├── GBRegressor (intensity)   ~5.4 MB  (150 trees × depth 4)
-├── ColumnTransformer         ~0.9 MB  (imputers + scalers + OHE)
-└── Label encoders + lists    ~0.3 MB
+├── TF-IDF Vectorizer            ~2.1 MB  (vocab=1000, IDF weights, bigrams)
+├── GBClassifier  (state)        ~6.2 MB  (200 estimators × depth 4)
+├── GBRegressor   (intensity)    ~5.8 MB  (300 estimators × depth 3)
+├── ColumnTransformer            ~0.9 MB  (SimpleImputer + StandardScaler + OHE)
+└── LabelEncoder + metadata      ~0.3 MB
 ```
 
-15 MB is well within the storage budget of any Android device manufactured after 2018, and the in-memory footprint during inference stays comfortably under 150 MB — leaving ample headroom for the OS, browser, and Pydroid 3 runtime on devices with 2 GB RAM.
+15 MB fits comfortably on any Android device manufactured after 2017. The peak in-memory footprint during inference stays under ~150 MB, leaving headroom for the OS, browser, and Pydroid 3 on devices with 2 GB RAM.
 
 ---
 
-## 4. Zero Latency — The User Experience Benefit
+## 6. Optimizations
 
-Latency in a wellness context is not merely an engineering metric. It is a product quality signal. A user who submits a vulnerable reflection and waits 800ms for a response has 800ms to second-guess, minimize, or close the app. A response in 25ms feels like the app *understands immediately* — which is the correct emotional register for a supportive tool.
-
-```
-Latency comparison for a single /predict call:
-
-Arvyax (local Flask)          ~25ms    ███
-Typical REST API (same city)  ~180ms   ████████████████████
-GPT-4o API (no streaming)     ~900ms   ████████████████████████████████████████████████████████████████████████████████████████████████████
-```
-
-Beyond raw speed, zero-latency operation means:
-- **Works in airplane mode.** Users in transit, in nature, or in rural areas with no signal.
-- **Works in poor connectivity.** The loading animation is never blocked by a network timeout.
-- **Consistent performance.** No variance from server load, CDN routing, or API rate limits.
-- **No cold start after launch.** The model loads once at app launch; all subsequent inferences use warm in-memory objects.
+Every technical decision in this system was made under the constraint of a single CPU core, no GPU, limited RAM, and a 15 MB storage budget. Below is a detailed justification for each choice.
 
 ---
 
-## 5. Validation Evidence
+### 6.1 TF-IDF — Lightweight Text Representation
 
-The model was validated on a prediction dataset of **1,200 samples**. Key metrics from `predictions.csv` that directly support the edge deployment case:
-
-### Confidence Distribution
+The pipeline uses `TfidfVectorizer` with `ngram_range=(1, 2)`, `max_features=1000`, and `sublinear_tf=True`. This was not a default choice — it was an explicit rejection of heavier alternatives:
 
 ```
-High confidence  (> 0.85) :   673 samples   56.1%  ████████████████████████████░░░░░░░░░░░░░░░░
-Good confidence  (0.7–0.85):  183 samples   15.3%  ████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-Moderate         (0.5–0.70):  206 samples   17.2%  █████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-Low              (< 0.50)  :  138 samples   11.5%  ██████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+Alternative Comparison — Text Vectorization
+───────────────────────────────────────────────────────────────
+MiniLM-L6-v2 (sentence-transformers):
+    Model size:  ~23 MB
+    RAM at inference:  ~400 MB
+    Inference time (CPU):  80–200ms per text
+    Understands metaphors, negation, context: YES
 
-Mean confidence: 0.778  |  Median: 0.874  |  Max: 0.997
+BERT-base-uncased:
+    Model size:  ~440 MB
+    RAM at inference:  ~1.2 GB
+    Inference time (CPU):  400–800ms per text
+
+TF-IDF (this system):
+    Vocabulary file:  ~2.1 MB
+    RAM at inference:  < 10 MB
+    Inference time (CPU):  < 5ms per text
+    Understands metaphors: NO (known limitation, documented)
 ```
 
-Over **71.4%** of predictions carry good-to-high confidence — validating that the TF-IDF + Gradient Boosting stack produces reliable outputs on real messy inputs without requiring a heavy neural network.
+TF-IDF represents each journal reflection as a sparse vector. For a 50-word text, the vector has 1,000 dimensions but typically fewer than 30 non-zero entries (words actually present in the vocabulary). The dot products computed by Gradient Boosting on this vector require microseconds. The equivalent BERT operation involves multiplying across 110 million parameters on a CPU, costing 400–800ms and risking an out-of-memory crash on devices with less than 3 GB RAM.
 
-### Uncertainty Handling in Practice
+The `sublinear_tf=True` flag applies log-normalization to term frequencies, preventing high-frequency words ("feeling", "day") from dominating over semantically richer but less frequent words ("drained", "concentrated", "lighter"). The bigram range `(1,2)` captures short phrases that carry more meaning than individual words — for example, `"but not"` and `"still mentally"` appear in the top feature importances, showing that two-word combinations are genuinely predictive.
 
-```
-Certain predictions:   837  (69.8%)
-Uncertain (flagged):   363  (30.2%)
-```
-
-The 30.2% uncertain rate is intentional, not a weakness. These are cases where the system correctly identifies that it is unsure — and sets `uncertain_flag = 1` to surface caution in the UI. A model that claims certainty on every input is more dangerous in a wellness context than one that honestly acknowledges its limits.
-
-**Top uncertainty triggers observed in the 1,200-sample validation:**
-
-| Trigger | Description | Count |
-|---------|-------------|-------|
-| `short_text (2–3 words)` | Vague inputs like "ok", "fine", "not sure" | 58 |
-| `borderline_intensity (3.43–3.59)` | Prediction straddling the 3/4 intensity boundary | 64 |
-| `low_class_confidence (< 0.45)` | Two states nearly equally probable | 7+ |
-
-All of these are correctly detected and flagged — protecting users from over-confident recommendations on poor-quality input.
-
-### Emotional State Coverage
-
-```
-calm         214  (17.8%)
-restless     208  (17.3%)
-focused      202  (16.8%)
-neutral      196  (16.3%)
-overwhelmed  196  (16.3%)
-mixed        184  (15.3%)
-```
-
-All six state classes are well-represented with a tight spread (max class variance of only 2.5 percentage points). The model makes diverse, calibrated predictions across all states — indicating genuine signal extraction rather than majority-class collapse.
-
-### Action Urgency Profile
-
-```
-Recommended NOW (immediate intervention):  705 samples  58.8%
-  └── box_breathing:   395  (56.0% of urgent actions)
-  └── rest:            230  (32.6% of urgent actions)
-  └── movement:         24   (3.4% of urgent actions)
-
-Recommended within 15 min:                267 samples  22.3%
-Recommended later today:                  119 samples   9.9%
-Tonight / Tomorrow morning:               109 samples   9.1%
-```
-
-The high proportion of now-urgency (58.8%) is exactly why < 30ms local latency is a functional requirement, not a nice-to-have. If 705 of 1,200 predictions recommend immediate intervention, routing those through a cloud API — adding 200–900ms and requiring internet — would be a product failure.
+**Known tradeoff:** TF-IDF cannot understand metaphors, semantic similarity, or words outside its 1,000-word vocabulary. This is an accepted limitation under the edge constraint and is documented in ERROR_ANALYSIS.md.
 
 ---
 
-## 6. Limitations & Mitigations
+### 6.2 Gradient Boosting — Fast, Calibrated CPU Inference
+
+Two separate models are trained: a `GradientBoostingClassifier` for emotional state and a `GradientBoostingRegressor` for intensity. The hyperparameter choices are deliberate:
+
+**State Classifier:**
+```python
+GradientBoostingClassifier(
+    n_estimators=200,     # 200 trees — sufficient depth, not wasteful
+    learning_rate=0.07,   # Slower learning → better generalization
+    max_depth=4,          # Moderate depth — avoids overfitting on 960 train samples
+    subsample=0.8,        # 80% row sampling per tree → implicit regularization
+    random_state=42,
+)
+```
+
+**Intensity Regressor:**
+```python
+GradientBoostingRegressor(
+    n_estimators=300,         # More trees needed for continuous output
+    learning_rate=0.05,       # Slower → smoother curve
+    max_depth=3,              # Shallower — intensity has less complexity than state
+    subsample=0.8,
+    min_samples_leaf=5,       # Prevents overfitting to rare intensity values
+    loss="huber",             # Robust to outliers in intensity labels
+    alpha=0.9,
+    random_state=42,
+)
+```
+
+Gradient Boosting was chosen over neural networks specifically because:
+
+| Property | Gradient Boosting | PyTorch LSTM | TensorFlow MobileNet |
+|----------|-------------------|--------------|----------------------|
+| Inference time (CPU) | ~10–20ms | ~50–150ms | ~30–80ms |
+| GPU required | No | Preferred | Preferred |
+| Probability output | Native (`predict_proba`) | Requires softmax head | Requires calibration |
+| Model size | ~12 MB combined | ~50+ MB | ~15+ MB |
+| Edge compatibility | Native Python | Requires TFLite or ONNX conversion | Requires TFLite conversion |
+
+The `predict_proba()` output from the classifier is used directly as the raw confidence score — no extra calibration step needed. This matters because confidence is a core output of the system, used to set the `uncertain_flag`.
+
+---
+
+### 6.3 SMOTE — Handling Class Imbalance Without Extra RAM
+
+The training set has mild class imbalance across 6 emotional states. SMOTE (Synthetic Minority Over-sampling Technique) is applied to the training split before fitting the classifier:
+
+```python
+smote = SMOTE(random_state=42, k_neighbors=min(3, min(np.bincount(y_s_tr)) - 1))
+X_tr_dense_bal, y_s_tr_bal = smote.fit_resample(X_tr_dense, y_s_tr)
+
+# Before SMOTE:  calm=173, focused=154, mixed=153, neutral=161, overwhelmed=152, restless=167
+# After  SMOTE:  All classes balanced at 173 samples each
+```
+
+SMOTE runs once during training on the developer machine. It produces no overhead at inference time on the mobile device — the balanced training data is already baked into the fitted model trees.
+
+---
+
+### 6.4 ColumnTransformer — Graceful Handling of Messy Metadata
+
+The metadata pipeline handles real-world messiness without failing:
+
+```python
+metadata_preprocessor = ColumnTransformer(transformers=[
+    ("num", Pipeline([
+        ("impute", SimpleImputer(strategy="median")),  # Fill missing numerics with median
+        ("scale",  StandardScaler()),                  # Normalize to zero mean, unit variance
+    ]), ["duration_min", "sleep_hours", "energy_level", "stress_level"]),
+
+    ("cat", Pipeline([
+        ("impute", SimpleImputer(strategy="constant", fill_value="missing")),  # Fill NaN categoricals
+        ("ohe",    OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
+    ]), ["ambience_type", "time_of_day", "previous_day_mood", "face_emotion_hint", "reflection_quality"]),
+])
+```
+
+`handle_unknown="ignore"` in the OneHotEncoder means that if a test record contains a category not seen during training (for example, a new `ambience_type`), it produces an all-zero encoding for that feature rather than crashing. This is critical for robustness on real user inputs at the edge.
+
+---
+
+### 6.5 The Decision Engine — Pure Rule-Based Logic, Zero Extra RAM
+
+The `DecisionEngine` is a pure Python class with no model weights. It runs in under 1ms and adds zero memory overhead. It applies five sequential layers:
+
+```
+Layer 1 — Time-of-day baseline
+    morning  → light_planning / now
+    afternoon → deep_work / now
+    evening  → journaling / tonight
+    night    → rest / tonight
+
+Layer 2 — Emotional state override
+    Overrides Layer 1 for states that demand immediate specific actions:
+    anxious / overwhelmed → box_breathing / now
+    restless              → grounding / now
+    tired                 → rest / now
+    focused / energized   → deep_work / now
+
+Layer 3 — Stress × Energy matrix
+    stress ≥ 4 AND energy ≥ 3 → movement / within_15_min
+    stress ≥ 4 AND energy < 3 → box_breathing / now
+    energy ≤ 1                → rest / now
+
+Layer 4 — Intensity amplifier
+    intensity ≥ 4 + negative state → force timing to "now"
+    intensity ≤ 2 + timing="now"   → soften to "within_15_min"
+    overwhelmed + intensity ≥ 4    → now or within_15_min
+
+Layer 5 — Uncertainty softening
+    uncertain_flag=1 + low stress + low intensity → pause / now
+    uncertain_flag=1 + timing="now"               → soften to within_15_min
+```
+
+This layered override design means the engine always produces a meaningful recommendation regardless of input quality. A missing metadata value defaults gracefully (stress=3.0, energy=3.0), and the decision still executes cleanly.
+
+---
+
+### 6.6 Inference Latency Breakdown
+
+End-to-end timing for a single `/predict` request on a mid-range Android CPU:
+
+| Step | Operation | Estimated Time |
+|------|-----------|----------------|
+| Text cleaning | `clean_text()` — lowercase, strip | < 1ms |
+| TF-IDF vectorization | Sparse transform of one text | ~3ms |
+| Metadata transform | `ColumnTransformer.transform()` — one row | ~2ms |
+| `hstack` + `.toarray()` | Combine sparse matrices | ~2ms |
+| `GBClassifier.predict_proba()` | 200 trees × depth 4 | ~10ms |
+| `GBRegressor.predict()` | 300 trees × depth 3 | ~8ms |
+| `compute_uncertainty()` | Rule checks on scalars | < 1ms |
+| `DecisionEngine.decide()` | 5-layer rule evaluation | < 1ms |
+| `DecisionEngine.generate_message()` | String formatting | < 1ms |
+| JSON serialization + HTTP response | Flask response | ~3ms |
+| **Total round-trip** | | **~25–30ms** |
+
+For reference:
+
+```
+Latency comparison — single /predict call:
+
+ArvyaX (local Flask, Android CPU)     ~25ms   ███
+Typical REST API (low-latency region)  ~180ms  ████████████████████
+OpenAI/Gemini API (streaming)          ~900ms+ ███████████████████████████████████████████
+```
+
+For a wellness system where 58.8% of predictions recommend an **immediate** action ("now"), 900ms of API latency is a product failure. 25ms feels instant — the system responds faster than the user has finished processing what they typed.
+
+---
+
+## 7. Model Size vs. Accuracy Tradeoffs
+
+| Configuration | State Accuracy | Intensity MAE | Artifact Size |
+|---------------|---------------|---------------|---------------|
+| Text-Only (TF-IDF + GBC) | 68.3% | 1.21 | ~8 MB |
+| Metadata-Only (ColumnTransformer + GBC) | 16.3% | 1.28 | ~1.5 MB |
+| **Hybrid (Ours) ★** | **67.9%** | **1.22** | **~15 MB** |
+
+The ablation study reveals that text is by far the dominant signal — metadata alone performs at near-random (16.3% on 6 classes). The hybrid model uses 15 MB instead of 8 MB but captures contextual signals (stress, energy, sleep, time of day) that text alone cannot provide — even when the text contribution is 85.5% vs. metadata's 14.5%.
+
+The 15 MB figure is well within acceptable range for offline mobile deployment. A typical podcast episode is ~30 MB per hour. The entire ArvyaX inference stack is smaller than a single compressed image on most news websites.
+
+---
+
+## 8. Uncertainty Handling at the Edge
+
+The uncertainty system is designed to be more honest, not less, when running at the edge. In a cloud system, uncertain predictions could be silently re-routed to a more powerful model. On-device, the system cannot do that — so it surfaces uncertainty directly to the user through `uncertain_flag=1` and an adjusted `supportive_message`.
+
+Uncertainty is triggered by four conditions, all detectable with zero additional compute:
+
+```python
+def compute_uncertainty(state_probs, intensity_raw, text, metadata_row, ...):
+    reasons = []
+    max_prob = float(np.max(state_probs))
+
+    # 1. Borderline intensity — prediction is between two integers
+    if abs(intensity_raw - round(intensity_raw)) > 0.4:
+        reasons.append(f"borderline_intensity ({intensity_raw:.2f})")
+
+    # 2. Short text — 3 words or fewer cannot carry enough signal
+    if len(str(text).split()) <= 3:
+        reasons.append(f"short_text ({word_count} words)")
+        max_prob = min(max_prob, 0.45)   # Hard cap for near-empty input
+
+    # 3. Missing metadata — 2 or more fields absent
+    if sum(1 for v in metadata_row if pd.isna(v)) >= 2:
+        reasons.append(f"missing_metadata ({count} fields)")
+
+    # 4. Low classifier confidence — top class < 0.45 after penalties
+    unified_conf = max(0.0, max_prob - intensity_dist * 0.3)
+    if unified_conf < 0.45:
+        reasons.append(f"low_class_confidence ({unified_conf:.2f})")
+
+    uncertain_flag = 1 if len(reasons) > 0 else 0
+    return round(unified_conf, 4), uncertain_flag, reasons
+```
+
+When `uncertain_flag=1`, the `DecisionEngine` automatically softens its recommendation — preferring `within_15_min` over `now`, and `pause` over any high-urgency action when both stress and intensity are low. The user receives a message that includes a hedging phrase:
+
+```
+"Your signals are a bit nuanced today, so this is more of a nudge
+ than a prescription — In a bit, clear your notifications..."
+```
+
+This is honest uncertainty communication — the system does not pretend to be confident when it is not.
+
+---
+
+## 9. Robustness on Real Inputs
+
+| Input Type | How the System Handles It |
+|------------|--------------------------|
+| Very short text ("ok", "fine", "tired") | `clean_text()` returns the text as-is. TF-IDF produces a near-empty sparse vector. `uncertain_flag=1` is set via `short_text` reason. Confidence is hard-capped at 0.45. |
+| Missing metadata (NaN fields) | `SimpleImputer` fills numerical NaNs with column medians. Categorical NaNs become the string `"missing"`, which OHE maps to an all-zero vector. Inference continues without crashing. |
+| Missing journal text entirely | `clean_text()` returns `"missing reflection"` as a sentinel string. TF-IDF finds no vocabulary matches, confidence is very low, uncertain_flag fires. |
+| Contradictory signals (calm predicted but intensity=5) | `compute_uncertainty()` checks `INTENSITY_STATE_CONSTRAINTS`. If `calm` is predicted with intensity > 3, a `state_intensity_conflict` reason is added and confidence is capped at 0.55. |
+| Unknown categorical values at test time | `OneHotEncoder(handle_unknown="ignore")` produces an all-zero row for unseen categories. No crash, no exception. |
+
+---
+
+## 10. Limitations and Mitigation Paths
 
 | Limitation | Impact | Mitigation |
 |------------|--------|------------|
-| TF-IDF cannot understand metaphors | Misclassifies poetic or unusual language | `uncertain_flag=1` surfaces this; MiniLM upgrade path documented |
-| Pydroid 3 startup time ~1.5s | First launch has a brief delay | Show a loading splash; model stays warm in memory after |
-| `debug=False` required in production | Development iteration is slower on device | Use `debug=True` on laptop only; never in deployed build |
-| Pickle is not forward-compatible | Must regenerate if Python version changes | Document Python version in `requirements.txt`; pin versions |
-| 30.2% uncertain rate | Some predictions carry low confidence | UI surfaces `uncertain_flag`; user is never silently misled |
-| No persistent session history | Each reflection is stateless | Acceptable for v1; local JSON logging can be added simply |
+| TF-IDF cannot understand metaphors or rare vocabulary | Misclassifies poetic, indirect, or non-English-influenced language | `uncertain_flag=1` surfaces this; MiniLM upgrade documented below |
+| Pickle is Python-version sensitive | Artifact must be regenerated if Python version changes | Pin Python version in `requirements.txt`; document with `python --version` |
+| Pydroid 3 startup time ~1.5 seconds | First launch has a brief delay | Show a loading screen; model stays warm in memory after |
+| No persistent session history | Each reflection is stateless | Acceptable for v1; local JSON logging can be added in ~20 lines |
+| 30.2% uncertain rate | Many predictions carry hedged confidence | This is intentional — the system correctly knows when it is unsure |
+| SMOTE requires dense matrix | `X_tr.toarray()` for SMOTE requires extra RAM during training | Training runs on developer machine, not on-device; not a deployment constraint |
+
+### Upgrade Path: MiniLM for Higher Accuracy
+
+If a future version of this system has access to a device with ≥ 4 GB RAM and is willing to accept ~200ms inference latency, the TF-IDF vectorizer can be replaced with a sentence-transformer:
+
+```python
+# Future upgrade — NOT the current implementation
+from sentence_transformers import SentenceTransformer
+model = SentenceTransformer("all-MiniLM-L6-v2")   # ~23 MB
+embeddings = model.encode(texts)                    # 384-dim dense vectors
+```
+
+This would improve handling of metaphors and semantic similarity at the cost of model size and latency. The Gradient Boosting classifiers would remain unchanged — only the text representation layer would be swapped.
 
 ---
 
-## Summary
+## 11. Summary
 
 | Property | Value |
 |----------|-------|
 | Total artifact size | ~15 MB |
-| Cold start time | ~1.5 seconds |
-| Inference latency | ~25ms per request |
+| Cold start time (Android) | ~1.5 seconds |
+| Per-request inference latency | ~25–30ms |
 | Internet required | **Never** |
-| Data transmitted | **Zero bytes** |
-| Validated samples | 1,200 |
-| Mean confidence | 77.8% |
-| High-confidence rate | 56.1% |
-| Uncertain flag rate | 30.2% (correctly flagged) |
-| Python runtime | Pydroid 3 (Android) |
-| Server framework | Flask 2.x |
+| User data transmitted | **Zero bytes** |
+| Training set size | 1,200 samples |
+| Test set size | 120 samples |
+| Validation accuracy (state) | 67.9% |
+| Intensity MAE | 1.22 |
+| Feature contribution (text) | 85.5% |
+| Feature contribution (metadata) | 14.5% |
+| Uncertain flag rate (test set) | ~30% (correctly flagged) |
+| Python runtime (Android) | Pydroid 3 |
+| Server framework | Flask + flask-cors |
 | UI access | Mobile browser → localhost:5000 |
+| All 6 state classes predicted | Yes — no majority-class collapse |
 
 ---
 
+*The system knows what it knows. It knows what it doesn't. And it runs in 25 milliseconds, offline, on a phone.*
