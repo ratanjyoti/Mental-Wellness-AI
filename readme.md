@@ -32,8 +32,8 @@ The system is designed for real-world messiness: short texts, missing values, co
 ### Step 1 — Clone the repository
 
 ```bash
-git clone https://github.com/your-repo/arvyax-wellness-ai
-cd arvyax-wellness-ai
+git clone https://github.com/your-repo/mental-wellness-ai
+cd mental-wellness-ai
 ```
 
 ### Step 2 — Create a virtual environment
@@ -133,20 +133,18 @@ For compatibility, TF-IDF features (256 dimensions) are also computed and concat
 
 ### Metadata Feature Engineering
 
-Raw metadata features undergo the following transformations before model input:
-
-| Raw Feature | Engineered Feature | Rationale |
-|---|---|---|
-| `stress_level` | as-is | Direct signal |
-| `energy_level` | as-is | Direct signal |
-| `sleep_hours` | `sleep_deficit = 8 - sleep_hours` | Deficit is more predictive than absolute hours |
-| `stress_level`, `energy_level` | `stress_x_energy = stress × energy` | Interaction: high stress + high energy → restless, not focused |
-| `stress_level`, `text_length` | `masked_distress = stress / log(text_length + 1)` | Short text + high stress = masked distress signal |
-| `time_of_day` | one-hot encoded | morning=0, afternoon=1, evening=2, night=3 |
-| `previous_day_mood` | label encoded | Trajectory context |
-| `journal_text` | `word_count` | Short text gate feature |
-| `reflection_quality` | label encoded | Data quality weight |
-
+| Raw Feature           | Engineered Feature / Transformation            | Rationale |
+|----------------------|-----------------------------------------------|-----------|
+| `stress_level`       | StandardScaler                                | Normalized to ensure high-stress signals don't overwhelm other numerical features. |
+| `energy_level`       | StandardScaler                                | Balanced to identify high vs. low capacity windows. |
+| `sleep_hours`        | StandardScaler + Median Imputation            | Absolute hours are scaled; missing values are filled with the median to maintain physiological context. |
+| `duration_min`       | StandardScaler                                | Captures the depth of the immersion session. |
+| `time_of_day`        | One-Hot Encoded                               | Expanded into binary columns to capture circadian rhythms without implying a mathematical order. |
+| `previous_day_mood`  | One-Hot Encoded                               | Provides historical trajectory (e.g., *restless yesterday influences overwhelmed today*). |
+| `ambience_type`      | One-Hot Encoded                               | Maps environmental triggers (e.g., *forest vs cafe*) to emotional states. |
+| `journal_text`       | `word_count`                                  | Calculated internally to trigger the short_text uncertainty gate and cap prediction confidence. |
+| `reflection_quality` | One-Hot Encoded                               | Used to weight the reliability of the textual input signal. |
+| `face_emotion_hint`  | One-Hot Encoded                               | Integrated as a secondary visual validation signal for the state classifier. |
 ---
 
 ## Part 1 — Emotional State Prediction
@@ -330,14 +328,64 @@ The high volume of uncertain cases reflects the inherent ambiguity in short-text
 | 9 | TF-IDF top terms | Text | Lower individual, high collective |
 | 10 | `time_of_day` | Metadata | Lower |
 
-### Text vs. Metadata Analysis
+## 🔍 Text vs. Metadata Analysis
 
-**Text features dominate for state classification.** The emotional tone of the journal entry — calm words, heavy language, scattered phrasing — is the strongest single signal for determining the emotional state. The sentence embeddings, which capture full sentence meaning rather than just word counts, are the most important individual feature group.
+### 🧠 Text Features — Primary Driver for State Classification
 
-**Metadata is essential for intensity and for the Decision Engine.** Even when state classification accuracy is similar between text-only and hybrid models, metadata is non-negotiable for the decision layer. You cannot recommend `rest` from text alone if `sleep_hours = 3`. You cannot recommend `deep_work` if `stress_level = 5`. Physical state grounds the recommendation in physiological reality — which is what makes it actionable rather than abstract.
+Text features dominate for **emotional state classification**. The emotional tone of the journal entry—captured through TF-IDF n-grams—remains the strongest single signal for determining the specific emotional state (e.g., distinguishing *"Focused"* from *"Neutral"*).
 
-**Key insight:** The `masked_distress` interaction feature (`stress_level / log(word_count + 1)`) proved particularly valuable. Short text combined with high stress is a distinct pattern — users who are the most dysregulated often write the least. Without this feature, these cases would be misclassified as low-concern based on the apparent mildness of their language.
+By capturing specific keywords and local phrasing, the text model identifies the user's **conscious reflection of their mood**.
 
+---
+
+### ⚙️ Metadata — Critical for Intensity & Decision Engine
+
+Metadata is essential for **Intensity prediction and the Decision Engine**.
+
+Even when text can reliably predict the **emotional state**, metadata is **non-negotiable** for downstream decisions.
+
+Text alone cannot determine whether a recommendation like **"Rest"** is:
+- a gentle suggestion, or  
+- a **physiological necessity**
+
+Metadata such as:
+- `sleep_hours = 3`
+- `stress_level = 5`
+
+grounds the system in **physical reality** and enables **actionable interventions**.
+
+For example:
+> A predicted *"Focused"* state may be overridden to **"Pause"** if stress levels are critically high.
+
+---
+
+### 🚨 Key Insight — The Short-Text Uncertainty Gate
+
+One of the most important findings in this system is the role of `word_count` as a **metadata signal**.
+
+We observed a consistent pattern:
+> Users who are the most dysregulated or *"Overwhelmed"* often write the **least**.
+
+Instead of allowing the model to **guess from insufficient data**, the system introduces a **hard safety mechanism**:
+
+#### When `word_count < threshold`:
+- ✅ Trigger `short_text` uncertainty flag  
+- 📉 Cap prediction confidence  
+- 🔄 Shift Decision Engine toward **safer interventions**:
+  - `pause`
+  - `movement`
+  - `grounding`
+
+This ensures the system remains **conservative, safe, and honest** when input quality is low.
+
+---
+
+### 💡 Summary Insight
+
+> **Text explains how the user feels.  
+Metadata explains what the system should do about it.**
+
+Both are essential — but they serve fundamentally different roles.
 ---
 
 ## Part 6 — Ablation Study
